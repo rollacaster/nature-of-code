@@ -1,4 +1,4 @@
-(ns nature-of-code.introduction.i-4.gaussian-random-walk
+(ns nature-of-code.introduction.i-5.gaussian-random-walk
   (:require [quil.core :as q]))
 
 (defn setup []
