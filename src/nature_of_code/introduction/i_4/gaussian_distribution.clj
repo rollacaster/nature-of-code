@@ -13,7 +13,7 @@
     (q/fill 255 10)
     (q/ellipse x 180 16 16)))
 
-(q/defsketch gaussian-distribution
+#_(q/defsketch gaussian-distribution
   :title "Gaussian distribution"
   :settings #(q/smooth 2)
   :setup setup

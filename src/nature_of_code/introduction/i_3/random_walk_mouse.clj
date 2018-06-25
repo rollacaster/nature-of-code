@@ -19,7 +19,7 @@
   (let [{:keys [x y]} @walker]
     (q/point x y)))
 
-(q/defsketch random-walk-mouse
+#_(q/defsketch random-walk-mouse
   :title "Random Walk Tends to walk to the mouse"
   :settings #(q/smooth 2)
   :setup setup

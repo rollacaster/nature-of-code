@@ -20,7 +20,7 @@
                        counts)]
       (q/rect x y w h))))
 
-(q/defsketch random-counts
+#_(q/defsketch random-counts
   :title "random-counts"
   :settings #(q/smooth 2)
   :setup setup

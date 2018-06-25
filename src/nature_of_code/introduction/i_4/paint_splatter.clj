@@ -15,7 +15,7 @@
             (+ (* (q/random-gaussian) 50) 255))
     (q/ellipse x y 10 10)))
 
-(q/defsketch paint-splatter
+#_(q/defsketch paint-splatter
   :title "Paint Splatter"
   :settings #(q/smooth 2)
   :setup setup

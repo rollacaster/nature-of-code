@@ -15,7 +15,7 @@
   (let [{:keys [x y]} @walker]
     (q/point x y)))
 
-(q/defsketch random-walk-down-right
+#_(q/defsketch random-walk-down-right
   :title "Random Walk Tends to walk down right"
   :settings #(q/smooth 2)
   :setup setup

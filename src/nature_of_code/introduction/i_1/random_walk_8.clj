@@ -13,7 +13,7 @@
   (let [{:keys [x y]} @walker]
     (q/point x y)))
 
-(q/defsketch random-walk-8
+#_(q/defsketch random-walk-8
   :title "Random Walk 8 Directions"
   :settings #(q/smooth 2)
   :setup setup

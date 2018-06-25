@@ -21,7 +21,7 @@
   (let [{:keys [x y]} @walker]
     (q/point x y)))
 
-(q/defsketch random-walk-gaus
+#_(q/defsketch random-walk-gaus
   :title "Random Walk Gaussian"
   :settings #(q/smooth 2)
   :setup setup
