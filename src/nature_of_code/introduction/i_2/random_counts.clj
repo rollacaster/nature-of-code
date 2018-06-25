@@ -1,4 +1,4 @@
-(ns nature-of-code.introduction.random-counts
+(ns nature-of-code.introduction.i-2.random-counts
   (:require [quil.core :as q]))
 
 (defn setup []

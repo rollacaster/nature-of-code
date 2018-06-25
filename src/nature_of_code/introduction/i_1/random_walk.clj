@@ -1,4 +1,4 @@
-(ns nature-of-code.introduction.random-walk
+(ns nature-of-code.introduction.i-1.random-walk
   (:require [quil.core :as q]))
 
 (defn setup []
