@@ -1,0 +1,13 @@
+* Fly
+  - Flies in circles (switch between acc in all directions)
+  - Constantly switching between rest and moving (remove all acc)
+  - No clear direction (randomness)
+* Fish
+  - Always in one directions (clear direction)
+  - Moves in an arc or soft wave forms (adjust only accelerations next to it)
+* Bunny
+  - Can change direction rapidly
+  - Accelerates and brakes after every step
+* Snake
+  - Moves in wave forms
+  - Fluent motion

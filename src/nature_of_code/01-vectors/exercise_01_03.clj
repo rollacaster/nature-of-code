@@ -1,4 +1,4 @@
-(ns nature-of-code.vectors.01-01-example
+(ns nature-of-code.01-vectors.exercise-01-03
   (:require [quil.core :as q]))
 
 (def location (atom (hash-map :x 100 :y 100 :z 0)))

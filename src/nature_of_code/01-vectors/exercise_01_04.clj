@@ -1,4 +1,4 @@
-(ns nature-of-code.vectors.exercise-01-04)
+(ns nature-of-code.01-vectors.exercise-01-04)
 
 (defn normalize [v]
   (let [m (mag v)]

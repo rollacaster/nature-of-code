@@ -1,4 +1,4 @@
-(ns nature-of-code.vectors.exercise-01-08
+(ns nature-of-code.01-vectors.exercise-01-08
   (:require [quil.core :as q]))
 
 (defn add [v1 v2]
