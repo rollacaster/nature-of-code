@@ -1,4 +1,4 @@
-(ns nature-of-code.core)
+(ns nature-of-code.vector)
 
 (defn add [v1 v2]
   (vector (+ (first v1) (first v2))
@@ -14,12 +14,12 @@
 
 (defn mag [[x y]] (Math/sqrt (+ (* x x) (* y y))))
 
+(defn normalize [v]
+  (let [m (mag v)]
+    (when (not (= m 0)) (div v m))))
+
 (defn limit [[x y] top]
   (if (> (mag [x y]) top)
     (mult (normalize [x y]) top)
     [x y]))
-
-(defn normalize [v]
-  (let [m (mag v)]
-    (when (not (= m 0)) (div v m))))
 
