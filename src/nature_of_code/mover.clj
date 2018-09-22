@@ -30,6 +30,18 @@
           (assoc :location [x height]))
       mover)))
 
+(defn keep-inside [mover width height]
+  (let [{:keys [location]} mover
+        [x y] location
+        mover (if (> x width)
+                (assoc mover :location [width y])
+                (if (< x 0)
+                  (assoc mover :location [0 y])
+                  mover))]
+    (if (> y height)
+      (assoc mover :location [x height])
+      mover)))
+
 
 
 
