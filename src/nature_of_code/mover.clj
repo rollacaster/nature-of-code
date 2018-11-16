@@ -1,5 +1,6 @@
 (ns nature-of-code.mover
-  (:require [nature-of-code.vector :as v]))
+  (:require [nature-of-code.vector :as v]
+            [quil.core :as q]))
 
 (defn apply-force [mover force]
   (assoc mover
@@ -42,6 +43,20 @@
       (assoc mover :location [x height])
       mover)))
 
+(defn attract [mover attractor]
+  (let [{loc1 :location} attractor
+        {loc2 :location} mover
+        vectorBetween (v/sub loc1 loc2)
+        distanceBetween (q/constrain-float (v/mag vectorBetween) 5.0 25.0)
+        G 2
+        strength (/ (* G (:mass attractor) (:mass mover)) (* distanceBetween distanceBetween))]
+    (v/mult (v/normalize vectorBetween) strength)))
 
-
-
+(defn repulse [mover attractor]
+  (let [{loc1 :location} attractor
+        {loc2 :location} mover
+        vectorBetween (v/sub loc1 loc2)
+        distanceBetween (q/constrain-float (v/mag vectorBetween) 5.0 25.0)
+        G 0.1
+        strength (/ (* G (:mass attractor) (:mass mover)) (* distanceBetween distanceBetween))]
+    (v/mult (v/mult (v/normalize vectorBetween) strength) -1)))
