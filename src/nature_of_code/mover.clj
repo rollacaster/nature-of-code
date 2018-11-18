@@ -2,6 +2,15 @@
   (:require [nature-of-code.vector :as v]
             [quil.core :as q]))
 
+(defn create-mover [mass location]
+  {:mass mass
+   :location location
+   :velocity [0.0 0.0]
+   :acceleration [0.0 0.0]
+   :aVelocity 0.0
+   :aAcceleration 0.0
+   :angle 0.0})
+
 (defn apply-force [mover force]
   (assoc mover
          :acceleration
@@ -11,6 +20,9 @@
   (-> mover
       (update :velocity #(v/add (:acceleration mover) %))
       (update :location #(v/add % (v/add (:acceleration mover) (:velocity mover))))
+      (assoc :aAcceleration (/ (first (:acceleration mover)) 10.0))
+      (update :aVelocity #(q/constrain-float (+ (:aAcceleration mover) %) -0.1 0.1))
+      (update :angle #(+ (:aVelocity mover) %))
       (assoc :acceleration [0 0])))
 
 (defn check-edges [mover width height]
@@ -48,7 +60,7 @@
         {loc2 :location} mover
         vectorBetween (v/sub loc1 loc2)
         distanceBetween (q/constrain-float (v/mag vectorBetween) 5.0 25.0)
-        G 2
+        G 0.4
         strength (/ (* G (:mass attractor) (:mass mover)) (* distanceBetween distanceBetween))]
     (v/mult (v/normalize vectorBetween) strength)))
 
