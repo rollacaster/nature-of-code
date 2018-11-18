@@ -55,6 +55,13 @@
       (assoc mover :location [x height])
       mover)))
 
+(defn move-to [mover attractor]
+  (let [{loc1 :location} attractor
+        {loc2 :location} mover
+        vectorBetween (v/sub loc1 loc2)
+        distanceBetween (q/map-range (v/mag vectorBetween) 0 2000 0 0.1)]
+    (apply-force mover (v/mult vectorBetween distanceBetween))))
+
 (defn attract [mover attractor]
   (let [{loc1 :location} attractor
         {loc2 :location} mover
@@ -62,7 +69,7 @@
         distanceBetween (q/constrain-float (v/mag vectorBetween) 5.0 25.0)
         G 0.4
         strength (/ (* G (:mass attractor) (:mass mover)) (* distanceBetween distanceBetween))]
-    (v/mult (v/normalize vectorBetween) strength)))
+    (apply-force mover (v/mult (v/normalize vectorBetween) strength))))
 
 (defn repulse [mover attractor]
   (let [{loc1 :location} attractor
