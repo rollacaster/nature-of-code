@@ -20,9 +20,9 @@
   (-> mover
       (update :velocity #(v/add (:acceleration mover) %))
       (update :location #(v/add % (v/add (:acceleration mover) (:velocity mover))))
-      (assoc :aAcceleration (/ (first (:acceleration mover)) 10.0))
-      (update :aVelocity #(q/constrain-float (+ (:aAcceleration mover) %) -0.1 0.1))
-      (update :angle #(+ (:aVelocity mover) %))
+      (update :aVelocity #(+ (:aAcceleration mover) %))
+      (update :angle #(+ (:aAcceleration mover) (:aVelocity mover) %))
+      (assoc :aAcceleration 0)
       (assoc :acceleration [0 0])))
 
 (defn check-edges [mover width height]
@@ -42,6 +42,15 @@
           (update :velocity (fn [[x y]] (vector x (* -1 y))))
           (assoc :location [x height]))
       mover)))
+
+(defn move-through [mover width height]
+  (let [{:keys [location]} mover
+        [x y] location]
+    (cond (> x width) (-> mover (assoc :location [0 y]))
+          (< x 0) (-> mover (assoc :location [width y]))
+          (> y height) (assoc mover :location [x 0])
+          (< y 0) (assoc mover :location [x height])
+          :else mover)))
 
 (defn keep-inside [mover width height]
   (let [{:keys [location]} mover
