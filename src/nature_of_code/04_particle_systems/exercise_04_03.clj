@@ -7,8 +7,8 @@
 
 (defn create-particle [location]
   {:location location
-   :velocity [(- (rand 2) 1) (- (rand 2) 2)]
-   :acceleration [0 0.05]
+   :velocity [(- (rand 2) 1) (- (rand 2) 1)]
+   :acceleration [0 0]
    :lifespan 255.0
    :aAcceleration 0.0
    :aVelocity 0.1
@@ -31,7 +31,7 @@
         (assoc :angle (+ aVelocity angle))
         (assoc :aAcceleration 0))))
 
-(defn apply-force [particle force]
+(defn apply-force [force particle]
   (update particle :acceleration #(v/add % force)))
 
 (defn display [{:keys [lifespan angle] [x y] :location :as particle}]
@@ -50,8 +50,7 @@
 
 (defn run [particle]
   (-> particle
-      #_(apply-force [0.1 0])
-       update-particle
+      update-particle
       display))
 
 (defn setup []
@@ -60,15 +59,15 @@
 (defn add-origin [origin {:keys [location] :as particle}]
   (assoc particle :location (v/add location origin)))
 
-(defn run-particle-system [particles]
+(defn run-particle-system [particles x y direction]
   (doseq [particle (swap! particles
-                          #(->> (conj % (add-origin [(q/mouse-x) (q/mouse-y)] (create-particle [0 0])))
-                               (map run)
-                               (remove is-dead)))]))
+                          #(->> %
+                                (map (comp run (partial apply-force direction)))
+                                (remove is-dead)))]))
 
 (defn draw []
   (q/background 255)
-  (run-particle-system particles))
+  (run-particle-system particles (q/mouse-x) (q/mouse-y)))
 
 (q/defsketch particle-system-mouse
   :title "particle-system-mouse"
