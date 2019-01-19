@@ -3,8 +3,10 @@
             [quil.core :as q]
             [quil.middleware :as md]))
 
-(def world (b/new-world [0 10]))
-(def boxes (atom ()))
+(defn init []
+  (def world (b/new-world [0 100]))
+  (def boundary (create-boundary world 350 250 350 10))
+  (def boxes (atom ())))
 
 (defn coord-pixels-to-world [x y]
   (let [scale-factor 10.0
@@ -26,39 +28,38 @@
                                      (/ h 2))})]
     {:body body :x x :y y :w w :h h}))
 
-(def boundary (create-boundary world 350 250 350 10))
-
-
 (defn display-box [{:keys [body w h]}]
   (let [[[x y]] (b/world-coords (b/fixture-of body))
         angle (b/angle body)]
     (q/push-matrix)
     (q/translate x y)
-    (q/rotate (- angle))
+    (q/rotate angle)
     (q/fill 175)
     (q/stroke 0)
-    (q/rect-mode :center)
+    (q/rect-mode :corner)
     (q/rect 0 0 w h)
     (q/pop-matrix)))
 
 (defn display-boundary [{:keys [body x y w h]}]
-  (q/fill 175)
-  (q/stroke 0)
-  (q/rect-mode :center)
-  (q/rect x y w h))
+  (let [[[x y]] (b/world-coords (b/fixture-of body))]
+    (q/fill 175)
+    (q/stroke 0)
+    (q/rect-mode :corner)
+    (q/rect x y w h)))
 
 (defn setup [])
 
 (defn draw []
   (q/clear)
   (q/background 127)
-  (b/step! world 1)
+  (b/step! world (/ 1.0 60.0))
+  (.clearForces world)
   (display-boundary boundary)
-  (when (q/mouse-pressed?)
-    (swap! boxes conj (create-box world (q/mouse-x) (q/mouse-y))))
+  
   (doall (map display-box @boxes)))
 
 (q/defsketch physics
+  :mouse-pressed #(swap! boxes conj (create-box world (q/mouse-x) (q/mouse-y)))
   :title "physics"
   :settings #(q/smooth 2)
   :middleware [md/pause-on-error]

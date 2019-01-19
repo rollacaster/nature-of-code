@@ -3,7 +3,7 @@
             [quil.core :as q]
             [quil.middleware :as md]))
 
-(def world (b/new-world [0 10]))
+(def world (b/new-world [0 100]))
 (def boxes (atom ()))
 
 (defn create-box [world x y]
@@ -15,7 +15,7 @@
         angle (b/angle body)]
     (q/push-matrix)
     (q/translate x y)
-    (q/rotate (- angle))
+    (q/rotate angle)
     (q/fill 175)
     (q/stroke 0)
     (q/rect-mode :center)
@@ -27,7 +27,7 @@
 (defn draw []
   (q/clear)
   (q/background 127)
-  (b/step! world 1)
+  (b/step! world (/ 1.0 60.0))
   (when (q/mouse-pressed?)
     (swap! boxes conj (create-box world (q/mouse-x) (q/mouse-y))))
   (doall (map display-box @boxes)))

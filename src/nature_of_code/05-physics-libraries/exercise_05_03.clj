@@ -3,17 +3,8 @@
             [quil.core :as q]
             [quil.middleware :as md]))
 
-(def world (b/new-world [0 10]))
+(def world (b/new-world [0 100]))
 (def boxes (atom ()))
-
-(defn coord-pixels-to-world [x y]
-  (let [scale-factor 10.0
-        worldX (q/map-range x (/ 700 2.0) (+ (/ 700 2.0) scale-factor), 0.0 1.1)
-        worldY (q/map-range y (/ 500 2.0) (+ (/ 500 2.0) scale-factor) 0.0 1.1)]
-    [worldX worldY]))
-
-(defn scalar-pixels-to-world [val]
-  (/ val 10.0))
 
 (defn create-box [world x y]
   (let [body (b/body! world {:position [x y]} {:shape (b/box 8 8) :restitution 0.5})]
@@ -32,10 +23,9 @@
         angle (b/angle body)]
     (q/push-matrix)
     (q/translate x y)
-    (q/rotate (- angle))
+    (q/rotate angle)
     (q/fill 175)
     (q/stroke 0)
-    (q/rect-mode :center)
     (q/rect 0 0 w h)
     (q/pop-matrix)))
 
@@ -59,7 +49,7 @@
 (defn draw []
   (q/clear)
   (q/background 127)
-  (b/step! world 1)
+  (b/step! world (/ 1.0 60.0))
   (display-surface @curved-boundary)
   (when (q/mouse-pressed?)
     (swap! boxes conj (create-box world (q/mouse-x) (q/mouse-y))))
