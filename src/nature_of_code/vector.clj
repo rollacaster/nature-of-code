@@ -25,3 +25,9 @@
     (mult (normalize [x y]) top)
     [x y]))
 
+(defn dot-product [[x1 y1] [x2 y2]]
+  (+ (* x1 x2) (* y1 y2)))
+
+(defn angle-between [v1 v2]
+  (Math/acos (/ (dot-product v1 v2) (* (mag v1) (mag v2)))))
+
