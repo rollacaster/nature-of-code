@@ -15,14 +15,14 @@
 
 (defn mag [[x y]] (Math/sqrt (+ (* x x) (* y y))))
 
+(defn normalize [v]
+  (let [m (mag v)]
+    (when (not (= m 0)) (div v m))))
+
 (defn limit [[x y] top]
   (if (> (mag [x y]) top)
     (mult (normalize [x y]) top)
     [x y]))
-
-(defn normalize [v]
-  (let [m (mag v)]
-    (when (not (= m 0)) (div v m))))
 
 (def location (atom [250 250]))
 (def velocity (atom [0 0]))

@@ -5,7 +5,7 @@
 
 (def movers (atom (->> (range 0 10)
                        (map (fn [x] {:mass (+ 1 (rand-int 50))
-                                     :location [(rand-int 500) (rand-int 5G00)]
+                                     :location [(rand-int 500) (rand-int 500)]
                                      :velocity [0 0]
                                      :acceleration [0 0]})))))
 
