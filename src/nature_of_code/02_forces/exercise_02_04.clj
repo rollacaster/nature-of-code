@@ -5,54 +5,67 @@
             [quil.middleware :as md]))
 
 (defn setup []
-  (q/frame-rate 1)
   {:movers (doall (map
                    (fn [mover] {:mass (+ 1 (rand-int 50))
                                 :location [0 0]
                                 :velocity [0 0]
                                 :acceleration [0 0]})
-                   (range 50)))})
+                   (range 50)))
+   :friction-areas (map
+                    (fn [i]
+                      (let [width (/ (q/width) 5)
+                            colors [[0 0 255] [0 255 0] [255 255 0] [0 255 255] [255 0 0]]]
+                        {:x (* i width)
+                         :width width
+                         :color (get colors i)
+                         :friction (q/random 0.01 0.2)}))
+                    (range 5))})
 
 (defn gravity [{:keys [mass]}]
   (vector 0 (* 0.1 mass)))
 
-(defn friction [{:keys [velocity] [x y] :location}]
-  (let [c (cond (> x 400) 0.01
-                (> x 300) 0.2
-                (> x 200) 5
-                (> x 100) 0.2
-                :else 0.01)]
-    (-> velocity
-        (v/mult -1)
-        (v/normalize)
-        (v/mult c))))
+(defn compute-friction [friction {:keys [velocity]}]
+  (-> velocity
+      (v/mult -1)
+      v/normalize
+      (v/mult (or friction 0.01))))
 
-(defn update-mover [mover width height]
-  (let [wind [0.1 0]]
+(defn compute-position [{:keys [acceleration velocity location] :as mover}]
+  (let [velocity (v/add acceleration velocity)
+        location (v/add location velocity)
+        acceleration (v/mult acceleration 0)]
     (-> mover
+        (assoc :velocity velocity)
+        (assoc :location location)
+        (assoc :acceleration acceleration))))
+
+(defn update-mover [mover friction]
+  (let [wind [0.1 0]]
+    (-> mover  
         (m/apply-force wind)
         (m/apply-force (gravity mover))
-        (m/apply-force (friction mover))
-        (m/compute-position)
-        (m/check-edges width height))))
+        (m/apply-force (compute-friction friction mover))
+        compute-position
+        m/check-edges)))
 
-(defn update-state [{:keys [movers]}]
-  (println "movers" movers)
-  {:movers (doall (map (fn [mover] (fn [mover] (update-mover mover (q/height) (q/width))))
-                       movers))})
+(defn update-state [{:keys [movers friction-areas] :as state}]
+  {:movers (doall (map
+                   (fn [mover]
+                     (let [friction (:friction (first (filter
+                                                       #(< (:x %) (first (:location mover)))
+                                                       (reverse friction-areas))))]
+                       (update-mover mover friction)))
+                   movers))
+   :friction-areas friction-areas})
 
-(defn draw [{:keys [movers]}]
+(defn draw-friction-area [{:keys [x width color friction]}]
+  (apply q/fill color)
+  (q/rect x 0 width (q/height)))
+
+(defn draw [{:keys [movers friction-areas]}]
   (q/clear)
-  (q/fill 0 0 255)
-  (q/rect 0 0 100 (q/height))
-  (q/fill 0 255 0)
-  (q/rect 100 0 100 (q/height))
-  (q/fill 255 255 0)
-  (q/rect 200 0 100 (q/height))
-  (q/fill 0 255 255)
-  (q/rect 300 0 100 (q/height))
-  (q/fill 255 0 0)
-  (q/rect 400 0 100 (q/height))
+  (doseq [friction-area friction-areas]
+    (draw-friction-area friction-area))
   (q/fill 255 0 255)
   (doseq [{:keys [mass] [x y] :location} movers]
       (q/ellipse x y mass mass)))
@@ -63,6 +76,8 @@
     :settings #(q/smooth 2)
     :draw draw
     :setup setup
-    :update-state update-state
+    :update update-state
     :middleware [md/pause-on-error md/fun-mode]
     :size [700 500]))
+
+
