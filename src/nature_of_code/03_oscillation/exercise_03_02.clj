@@ -1,39 +1,64 @@
 (ns nature-of-code.03-oscillation.exercise-03-02
   (:require [quil.core :as q]
             [quil.middleware :as md]
-            [nature-of-code.mover :as m]))
+            [nature-of-code.mover :as m]
+            [nature-of-code.vector :as v]))
 
-(def cannonballs (atom (map #(m/create-mover (* % 5) [(* % 5) (rand-int 500)]) (range 0 10))))
-(def attractor (m/create-mover 50 [200 200]))
+(defn setup []
+  (q/no-stroke)
+  {:location [(* (q/width) 0.1) (* (q/height) 0.8)]
+   :velocity [0 0]
+   :acceleration [0 0]
+   :aAcceleration 0
+   :aVelocity 0
+   :angle 0
+   :mass 20})
 
-(defn gravity [{:keys [mass]}]
-  (vector 0 (* 0.1 mass)))
+(defn compute-position [mover]
+  (-> mover
+      (update :velocity #(v/add (:acceleration mover) %))
+      (update :location #(v/add % (v/add (:acceleration mover) (:velocity mover))))
+      (update :aVelocity #(+ (:aAcceleration mover) %))
+      (update :angle #(+ (:aAcceleration mover) (:aVelocity mover) %))
+      (assoc :aAcceleration 0)
+      (assoc :acceleration [0 0])))
 
-(defn draw []
+(defn shoot [{:keys [velocity]}]
+  (if (= (v/mag velocity) 0)
+    [3 3]
+    [0 0]))
+
+(defn update-cannonball [cannonball]
+  (-> cannonball
+      (m/apply-force (shoot cannonball))
+      compute-position))
+
+(defn update-state [cannonball]
+  (update-cannonball cannonball))
+
+(defn draw-cannon []
+  (q/with-translation [(* (q/width) 0.1) (* (q/height) 0.8)]
+    (q/with-fill [0 0 0]
+      (q/rect -15 5 30 20)
+      (q/with-rotation [(q/radians 225)]
+        (q/ellipse 0 0 20 20)
+        (q/rect -10 0 20 20)))))
+
+(defn draw-cannonball [{[x y] :location}]
+  (q/with-fill [255 0 0]
+    (q/ellipse x y 30 30)))
+
+(defn draw [cannonball]
   (q/clear)
-  (q/background 255)
-  (q/rect-mode :center)
-  (q/ellipse-mode :center)
-  (let [{:keys [mass angle] [x y] :location} attractor]
-    (q/ellipse x y mass mass))
-  (doseq [{:keys [mass angle] [x y] :location}
-          (swap! cannonballs (fn [cannonballs]
-                               (map
-                                #(-> %
-                                     #_(m/apply-force (gravity %))
-                                     (m/apply-force (m/attract % attractor))
-                                     (m/compute-position))
-                                cannonballs)))]
-    (q/push-matrix)
-    (q/translate x y)
-    (q/rotate angle)
-    (q/rect 0 0 mass mass)
-    (q/pop-matrix)))
+  (draw-cannonball cannonball)
+  (draw-cannon))
 
 (defn run []
   (q/defsketch cannonball
     :title "cannonball"
     :settings #(q/smooth 2)
     :draw draw
-    :middleware [md/pause-on-error]
+    :setup setup
+    :update update-state
+    :middleware [md/pause-on-error md/fun-mode]
     :size [800 500]))

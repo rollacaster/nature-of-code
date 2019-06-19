@@ -4,21 +4,14 @@
             [quil.core :as q]
             [quil.middleware :as md]))
 
-(def spaceship (atom (m/create-mover 50 [250 250])))
-(def angle (atom 0))
-
 (defn setup []
-  )
+  (m/create-mover 50 [250 250]))
 
-(defn draw []
+(defn draw [spaceship]
   (q/background 255)
   (q/fill 126)
   (q/stroke-weight 2)
-  (let [{:keys [mass angle]
-         [x y] :location} (swap! spaceship #(-> %
-                                                (m/apply-force (v/mult (:velocity %) -0.2))
-                                                (m/move-through (q/width) (q/height))
-                                                (m/compute-position)))]
+  (let [{:keys [mass angle] [x y] :location} spaceship]
     (q/push-matrix)
     (q/translate x y)
     (q/rotate angle)
@@ -27,20 +20,25 @@
     (q/rect (- (- (/ mass 2)) 5) -5 5 5)
     (q/pop-matrix)))
 
-(defn key-pressed []
-  (swap! spaceship #(cond (= (q/key-as-keyword) :left) (update % :angle (fn [angle] (+ angle 0.2)))
-                          (= (q/key-as-keyword) :right) (update % :angle (fn [angle] (- angle 0.2)))
-                          (= (q/key-as-keyword) :up)
-                          (assoc % :acceleration [(q/cos (:angle %))
-                                                  (q/sin (:angle %))])
-                          :else %)))
+(defn update-state [{:keys [velocity] :as spaceship}]
+  (-> spaceship
+      (m/apply-force (v/mult velocity -0.2))
+      (m/move-through)
+      (m/compute-position)))
+
+(defn key-pressed [{:keys [angle] :as spaceship} {:keys [key]}]
+  (cond (= (q/key-as-keyword) :left) (update spaceship :angle + 0.2)
+        (= (q/key-as-keyword) :right) (update spaceship :angle - 0.2)
+        (= (q/key-as-keyword) :up) (assoc spaceship :acceleration [(q/cos angle) (q/sin angle)])
+        :else spaceship))
 
 (defn run []
   (q/defsketch asteriods
     :title "asteriods"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
+    :update update-state
     :key-pressed key-pressed
     :draw draw
     :features [:no-bind-output]
