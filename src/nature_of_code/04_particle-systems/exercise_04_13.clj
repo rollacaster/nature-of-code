@@ -2,11 +2,11 @@
   (:require [nature-of-code.vector :as v]
             [quil.core :as q]
             [quil.middleware :as md]))
-
-(def gravity [0 0.3])
-(def image nil)
-(def particle-system (atom {:particles () :origin [350 250]}))
-
+(defn setup []
+  (q/image-mode :center)
+  (q/no-stroke)
+  {:particles ()
+   :image (q/load-image "texture.png")})
 
 (defn create-texture [location]
   {:location location
@@ -19,67 +19,57 @@
    :mass 10
    :strength 5})
 
-(defn add-particle [ps]
-  (update ps :particles #(conj % (create-texture (:origin ps)))))
-
-(defn display-particle [{:keys [lifespan angle] [x y] :location :as particle}]
-  (q/image-mode :center)
-  (q/color-mode :hsb)
-  (q/tint lifespan 230 127)
-  (q/image image x y))
-
-
 (defn is-dead [{:keys [lifespan]}]
   (< lifespan 0.0))
 
-(defn apply-force [{:keys [mass acceleration] :as particle} force]
-  (assoc particle :acceleration
-         (v/add acceleration (v/div force mass))))
+(defn apply-force [force {:keys [mass acceleration] :as particle}]
+  (assoc particle :acceleration (v/add acceleration (v/div force mass))))
 
 (defn update-particle [{:keys [acceleration velocity location lifespan
                                aVelocity aAcceleration angle] :as particle}]
   (let [velocity (v/add velocity acceleration)
         location (v/add velocity location)
-        lifespan (- lifespan 2.0)
         aVelocity (+ aVelocity aAcceleration)
         angle (+ aVelocity angle)]
     (-> particle
         (assoc :velocity velocity)
         (assoc :location location)
-        (assoc :lifespan lifespan)
+        (update :lifespan dec)
         (assoc :aVelocity aVelocity)
         (assoc :angle angle)
         (assoc :aAcceleration 0.0)
         (assoc :acceleration [0 0]))))
 
-(defn run-particle-system [{:keys [particles confetti] :as ps}]
-  (doseq [particle particles]
-    (-> particle
-        display-particle))
+(defn update-state [state]
   (let [wind [(q/map-range (q/mouse-x) 0.0 (q/width) -0.2 0.2)
-              (q/map-range (q/mouse-y) 0.0 (q/height) -0.2 0.2)]]
-    (-> ps
-        (update :particles #(map (fn [particle] (apply-force particle wind)) %))
-        (update :particles #(map update-particle %))
-        (update :particles #(remove is-dead %)))))
+              (q/map-range (q/mouse-y) 0.0 (q/height) -0.2 0.2)]
+        origin [(/ (q/width) 2) (* 0.8 (q/height))]]
+    (update state :particles
+            #(->> (conj % (create-texture origin))
+                 (map (partial apply-force wind))
+                 (map update-particle)
+                 (remove is-dead)))))
 
-(defn setup []
-  (def image (q/load-image "texture-white.png")))
+(defn draw-particle [{:keys [lifespan angle] [x y] :location :as particle} image]
+  (q/fill 255 20 5 lifespan)
+  (q/ellipse x y
+             (q/map-range lifespan 255 0 100 0)
+             (q/map-range lifespan 255 0 100 0)))
 
-(defn draw []
+(defn draw [{:keys [particles image]}]
   (q/blend-mode :add)
   (q/background 0)
-  (swap! particle-system (comp
-                          add-particle
-                          run-particle-system)))
+  (doseq [particle particles]
+    (draw-particle particle image)))
 
 (defn run []
   (q/defsketch particle
     :title "particle"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
     :draw draw
+    :update update-state
     :features [:no-bind-output]
-    :size [700 500]
-    :renderer :p2d))
+    :size [500 500]
+    :renderer :opengl))

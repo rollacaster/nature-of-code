@@ -3,56 +3,45 @@
             [quil.core :as q]
             [quil.middleware :as md]))
 
-(def oscilators (atom '({:angle [0 0]
-                         :velocity [0 0]
-                         :acceleration [0 0.03]
-                         :amplitude [-30 -30]
-                         :location [-50 -50]}
-                        {:angle [0 0]
-                         :velocity [0 0]
-                         :acceleration [0 0.03]
-                         :amplitude [30 30]
-                         :location [50 -50]}
-
-                        {:angle [0 0]
-                         :velocity [0 0]
-                         :acceleration [0 0.03]
-                         :amplitude [0 -30]
-                         :location [-100 0]}
-                        {:angle [0 0]
-                         :velocity [0 0]
-                         :acceleration [0 0.03]
-                         :amplitude [0 30]
-                         :location [100 0]}
-
-                        {:angle [0 0]
-                         :velocity [0 0]
-                         :acceleration [0 0.03]
-                         :amplitude [-30 -30]
-                         :location [-50 50]}
-                        {:angle [0 0]
-                         :velocity [0 0]
-                         :acceleration [0 0.03]
-                         :amplitude [30 30]
-                         :location [50 50]})))
-
 (defn setup []
-  )
+  (list
+   {:angle [0 0]
+    :velocity [0 0]
+    :acceleration [0 0.03]
+    :amplitude [-30 -30]
+    :location [-50 -50]}
+   {:angle [0 0]
+    :velocity [0 0]
+    :acceleration [0 0.03]
+    :amplitude [30 30]
+    :location [50 -50]}
+   {:angle [0 0]
+    :velocity [0 0]
+    :acceleration [0 0.03]
+    :amplitude [0 -30]
+    :location [-100 0]}
+   {:angle [0 0]
+    :velocity [0 0]
+    :acceleration [0 0.03]
+    :amplitude [0 30]
+    :location [100 0]}
+   {:angle [0 0]
+    :velocity [0 0]
+    :acceleration [0 0.03]
+    :amplitude [-30 -30]
+    :location [-50 50]}
+   {:angle [0 0]
+    :velocity [0 0]
+    :acceleration [0 0.03]
+    :amplitude [30 30]
+    :location [50 50]}))
 
-(defn draw []
+(defn draw [state]
   (q/background 255)
-  (doseq [{:keys [angle velocity amplitude location]}
-          (swap! oscilators
-                 #(map (fn [o]
-                         (-> o
-                             (update :velocity (fn [v] (v/add v (:acceleration (assoc o :acceleration (v/add (:acceleration o) [0.00002 0.00002]))))))
-                             (update :angle (fn [a] (v/add a (v/add (:acceleration o)(:velocity o)))))
-                             (assoc :acceleration [0 0])))
-                       %))]
-    (let [[a1 a2] angle
-          [am1 am2] amplitude
-          [l1 l2] location
-          x (+ l1 (* am1 (q/cos a1)))
+  (doseq [{[a1 a2] :angle
+           [am1 am2] :amplitude
+           [l1 l2] :location} state]
+    (let [x (+ l1 (* am1 (q/cos a1)))
           y (+ l2 (* am2 (q/cos a2)))]
       (q/push-matrix)
       (q/stroke 0)
@@ -62,12 +51,23 @@
       (q/ellipse x y 20 20)
       (q/pop-matrix))))
 
+(defn update-oscilliator [{:keys [acceleration velocity] :as o}]
+  (-> o
+      (update :velocity v/add (v/add acceleration [0.00002 0.00002]))
+      (update :angle v/add (v/add acceleration velocity))
+      (assoc :acceleration [0 0])))
+
+l(defn update-state [state]
+  (map update-oscilliator state))
+
+
 (defn run []
   (q/defsketch angular-oscilliate
     :title "angular-oscilliate"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
+    :update update-state
     :draw draw
     :features [:no-bind-output]
-    :size [500 500]))
+    :size [700 500]))
