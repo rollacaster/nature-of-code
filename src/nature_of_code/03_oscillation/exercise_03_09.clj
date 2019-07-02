@@ -3,7 +3,7 @@
             [quil.middleware :as md]))
 
 (defn setup []
-  (map #(hash-map :angle (* % angleVel) :x (* % 24)) (range (/ (q/width) 24))))
+  (map #(hash-map :angle (* % 0.1) :x (* % 24)) (range (/ (q/width) 24))))
 
 (defn draw [angles]
   (q/background 255)
