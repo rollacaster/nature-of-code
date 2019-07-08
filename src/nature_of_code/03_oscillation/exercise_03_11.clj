@@ -2,51 +2,46 @@
   (:require [quil.core :as q]
             [quil.middleware :as md]))
 
-(def waves (atom '({:amplitude 200
-                    :angleVel 0.1
-                    :startAngle 0}
-                   {:amplitude 50
-                    :angleVel 0.3
-                    :startAngle 0}
-                   {:amplitude 150
-                    :angleVel 0.6
-                    :startAngle 0})))
-
-(defn combine [waves]
-  (reduce
-   (fn [c-wave wave]
-     (let [{:keys [angleVel startAngle amplitude]} wave]
-       (let [angle (atom startAngle)]
-         (map-indexed
-          (fn [i [x y]]
-            (swap! angle #(+ % angleVel))
-            [(* i 24) (+ y (q/map-range (q/sin @angle) -1 1 0 amplitude))])
-          c-wave))))
-   (map (fn [i] [0 0]) (range (/ (q/width) 24)))
-   waves))
-
-(defn combine-wave [waves]
-  (let [c-wave (combine waves)]
-       (doseq [[x y] c-wave]
-         (q/stroke 0)
-         (q/fill 0 50)
-         (q/ellipse x y 48 48)))
-  (map (fn [wave] (update wave :startAngle #(+ % 0.02))) waves))
-(combine-wave @waves)
 (defn setup []
-  )
+  (map #(vector (* % 24)
+                [{:amplitude 200
+                  :angle-vel 0.01
+                  :angle (* % 0.1)}
+                 {:amplitude 50
+                  :angle-vel 0.03
+                  :angle (* % 0.3)}
+                 {:amplitude 150
+                  :angle-vel 0.06
+                  :angle (* % 0.5)}]) (range (/ (q/width) 24))))
 
-(defn draw []
+(defn update-state [state]
+  (map (fn [[x ys]]
+         [x (map (fn [{:keys [angle-vel] :as y}] (update y :angle + angle-vel)) ys)])
+       state))
+
+(defn combine-waves [waves]
+  (reduce (fn [total-y {:keys [angle-vel amplitude angle]}]
+            (+ total-y (q/map-range (q/sin angle) -1 1 0 amplitude)))
+          0 waves))
+
+(defn draw-wave-element [[x waves]]
+  (q/stroke 0)
+  (q/fill 0 50)
+  (q/ellipse x (combine-waves waves) 48 48))
+
+(defn draw [state]
   (q/background 255)
   (q/translate 0 125)
-  (doseq [wave (swap! waves combine-wave)]))
+  (doseq [wave-element state]
+    (draw-wave-element wave-element)))
 
 (defn run []
-  (q/defsketch combine-wave
+  (q/defsketch combined-wave
     :title "combine-wave"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
     :draw draw
+    :update update-state
     :features [:no-bind-output]
     :size [700 500]))

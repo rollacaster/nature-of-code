@@ -1,38 +1,57 @@
 (ns nature-of-code.02-forces.exercise-02-10
   (:require [quil.core :as q]
             [nature-of-code.mover :as m]
-            [nature-of-code.vector :as v]))
+            [nature-of-code.vector :as v]
+            [quil.middleware :as md]))
 
+(defn compute-position [{:keys [acceleration velocity location] :as mover}]
+  (let [velocity (v/add acceleration velocity)
+        location (v/add velocity location)]
+    (-> mover
+        (assoc :acceleration [0 0])
+        (assoc :velocity velocity)
+        (assoc :location location))))
 
-(def movers (atom (->> (range 0 10)
-                       (map (fn [x] {:mass (+ 10 (rand-int 50))
-                                     :location [(rand-int 500) (rand-int 500)]
-                                     :velocity [0 0]
-                                     :acceleration [0 0]})))))
+(defn repulse [mover attractor]
+  (let [{loc1 :location} attractor
+        {loc2 :location} mover
+        vectorBetween (v/sub loc1 loc2)
+        distanceBetween (q/constrain-float (v/mag vectorBetween) 5.0 25.0)
+        G 0.0001
+        strength (/ (* G (:mass attractor) (:mass mover)) (* distanceBetween distanceBetween))]
+    (v/mult (v/mult (v/normalize vectorBetween) strength) -1)))
 
-(defn compute-movers []
-  (let [mouse {:mass 10 :location [(q/mouse-x) (q/mouse-y)]}]
-    (doseq [{:keys [mass] [x y] :location}
-            (swap! movers
-                   (fn [movers]
-                     (map (fn [mover]
-                            (m/compute-position
-                             (m/apply-force
-                              (reduce #(m/apply-force %1 (m/repulse %1 %2)) mover movers)
-                              (m/attract mover mouse))))
-                          movers)))]
-      (q/ellipse x y mass mass))))
+(defn setup []
+  {:movers (map (fn [x] {:mass (+ 10 (rand-int 50))
+                         :location [(rand-int 500) (rand-int 500)]
+                         :velocity [0 0]
+                         :acceleration [0 0]})
+                (range 0 10))})
 
-(defn draw []
-  (q/clear) 
+(defn update-mover [movers mover]
+  (let [mouse {:mass 100 :location [(q/mouse-x) (q/mouse-y)]}]
+    (compute-position
+     (m/apply-force
+      (reduce #(m/apply-force %1 (repulse %1 %2)) mover movers)
+      (m/attract mover mouse)))))
+
+(defn update-state [state]
+  (update state :movers (fn [movers] (map #(update-mover movers %) movers))))
+
+(defn draw [{:keys [movers]}]
+  (q/clear)
   (q/background 255)
-  (compute-movers))
+  (doseq [{:keys [mass] [x y] :location} movers]
+    (q/ellipse x y mass mass)))
 
 (defn run []
   (q/defsketch repulse-mouse
     :title "repulse-mouse"
     :settings #(q/smooth 2)
     :draw draw
-    :size [500 500]))
+    :setup setup
+    :update update-state
+    :middleware [md/pause-on-error md/fun-mode]
+    :size [700 500]))
 
 
