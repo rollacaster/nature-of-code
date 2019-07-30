@@ -29,7 +29,7 @@
         desired (v/mult (v/normalize desired-location) max-speed)
         max-force (q/map-range (v/mag desired-location) 0 (q/width) 0 maxforce)
         steer (v/limit (v/sub desired velocity) maxforce)]
-    (apply-force vehicle steer)))
+    steer))
 
 (defn setup []
   (map (fn [i] (setup-vehicle [(q/random (q/width)) (q/random (q/height))])) (range 100)))
@@ -55,8 +55,8 @@
     (if (> count 0)
       (let [avg-v (v/mult (v/normalize (v/div sum count)) maxspeed)
             steer (v/sub avg-v velocity)]
-        (apply-force vehicle steer))
-      vehicle)))
+        steer)
+      [0 0])))
 
 (defn cohese [vehicles {:keys [location maxspeed velocity r] :as vehicle}]
   (let [desired-cohesion (* r 2)
@@ -72,18 +72,21 @@
     (if (> count 0)
       (let [avg-v (v/mult (v/normalize (v/div sum count)) maxspeed)
             steer (v/sub avg-v velocity)]
-        (apply-force vehicle (v/mult steer -1)))
+        (v/mult steer -1))
       vehicle)))
 
 (defn update-state [state]
-  (map (comp
-        (partial cohese state)
-        move-through
-        update-vehicle)
+  (map (fn [v]
+         (-> v
+             (apply-force (v/mult (separate state v) 1.5))
+             (apply-force (v/mult (seek [(q/mouse-x) (q/mouse-y)] v) 0.5))
+             move-through
+             update-vehicle))
        state))
 
 (defn draw-vehicle [{:keys [r velocity] [x y] :location}]
-  (let [theta (+ (q/atan2 (second velocity) (first velocity)) q/HALF-PI)]
+  (q/ellipse x y 8 8)
+  #_(let [theta (+ (q/atan2 (second velocity) (first velocity)) q/HALF-PI)]
     (q/fill 175)
     (q/stroke 0)
     (q/push-matrix)
@@ -101,12 +104,14 @@
   (doseq [vehicle state]
     (draw-vehicle vehicle)))
 
-(q/defsketch cohesion
-  :title "cohesion"
-  :settings #(q/smooth 2)
-  :middleware [md/pause-on-error md/fun-mode]
-  :setup setup
-  :draw draw
-  :update update-state
-  :features [:no-bind-output]
-  :size [750 500])
+(defn start []
+  (q/defsketch cohesion
+    :title "cohesion"
+    :settings #(q/smooth 2)
+    :middleware [ md/fun-mode]
+    :setup setup
+    :draw draw
+    :update update-state
+    :features [:no-bind-output]
+    :display 1
+    :size [750 500]))

@@ -1,25 +1,26 @@
 (ns nature-of-code.06-autonomous-agents.exercise-06-10
   (:require [quil.core :as q]
             [quil.middleware :as md]
+            [quil.sketch :as s]
             [nature-of-code.vector :as v]
             [nature-of-code.mover :as m]))
 
 (defn state []
   {:path {:r 20
-          :lines ()
           :points (list [350 0]
-                        [400 (/ (q/height) 3)]
-                        [300 (/ (q/height) 3)]
+                        [400 (/ (q/height) 4)]
                         [450 (/ (q/height) 2)]
                         [350 (/ (q/height) 1)])}
    :vehicle {:acceleration [0 0]
              :velocity [0 0]
-             :location [150 150]
+             :location [(/ (q/width) 2) (/ (q/height) 2)]
              :r 10
              :maxspeed 4.0
              :maxforce 0.1
              :prediction [0 0]
-             :normal-point [0 0]}})
+             :normal-point [0 0]
+             :target [0 0]
+             :on-track false}})
 
 (defn setup []
   (state))
@@ -45,52 +46,62 @@
         (assoc :location (v/add location velocity))
         (assoc :acceleration (v/mult acceleration 0)))))
 
-(defn update-lines [{:keys [location velocity] :as vehicle} {:keys [points] :as path}]
-  (assoc path :lines
-         (map-indexed
-          (fn [idx point]
-            (let [p            (v/add location  (v/mult (v/normalize velocity) 25))
-                  a            point
-                  b            (get (into [] points) (inc idx))
-                  [nx ny]      (get-normal-point p a b)
-                  normal-point (if (or (< nx (first a)) (> nx (first b))) b [nx ny])
-                  distance     (v/mag (v/sub normal-point p))]
-              {:normal-point normal-point :start a :end b :distance distance}))
-          (butlast points))))
-
-(defn follow-path [{:keys [points r]} {:keys [location velocity] :as vehicle}]
-  (let [{:keys [normal-point distance line]} (reduce
-                                         (fn [current point]
-                                           (if (< (:distance point) (:distance current)) point current))
-                                         {:distance 10000000 :normal-point [0 0]}
-                                         (map-indexed
-                                          (fn [idx point]
-                                            (let [p            (v/add location  (v/mult (v/normalize velocity) 25))
-                                                  a            point
-                                                  b            (get (into [] points) (inc idx))
-                                                  [nx ny]      (get-normal-point p a b)
-                                                  normal-point (if (or (< nx (first a)) (> nx (first b))) b [nx ny])
-                                                  distance (v/mag (v/sub normal-point p))]
-                                              {:distance distance :normal-point normal-point :line b}))
-                                          (butlast points)))
-        target (v/add (v/mult (v/normalize line) 25) normal-point)]
-    (if (> distance r)
-      (seek vehicle target)
-      vehicle)))
+(defn follow-path [{:keys [points r]} {:keys [location velocity prediction] :as vehicle}]
+  (let [world-record 10000000
+        distances (map-indexed
+                   (fn [idx point]
+                     (let [prediction   (v/add location  (v/mult (v/normalize velocity) 25))
+                           a            point
+                           b            (get (into [] points) (inc idx))
+                           [nx ny]      (get-normal-point prediction a b)
+                           normal-point (if (or
+                                             (or (< nx (first a)) (> nx (first b)))
+                                             (or (< ny (second a)) (> ny (second b)))) b [nx ny])
+                           distance (v/mag (v/sub prediction normal-point))]
+                       {:distance distance :normal-point normal-point :line (v/normalize (v/sub b a))}))
+                   (butlast points))
+        {:keys [normal-point distance line]} (reduce
+                                              (fn [{:keys [distance]
+                                                    [nx ny] :normal-point
+                                                    :as current} point]
+                                                (if (< (:distance point) distance) point current))
+                                              {:distance world-record :normal-point [0 0]}
+                                              distances)
+        target (v/add (v/mult (v/mult line 25) -1) normal-point)]
+    (let [v (-> vehicle
+                (assoc :prediction (v/add location  (v/mult (v/normalize velocity) 25)))
+                (assoc :normal-point normal-point)
+                (assoc :target target)
+                (assoc :on-track (> distance r)))]
+      (if (> distance r)
+        (seek v target)
+        v))))
 
 (defn update-state [{:keys [vehicle path] :as current-state}]
   (let []
     (-> (merge current-state)
-        (update :path (partial update-lines vehicle))
         (update :vehicle (comp
                           update-vehicle
+                          m/move-through
                           (partial follow-path path))))))
 
-(defn draw-path [r point]
-  (q/fill 255)
-  (q/stroke-weight r)
-  (q/stroke 127 127 127 127)
-  (apply q/vertex point))
+(defn draw-path [{:keys [points r]}]
+  (q/push-matrix)
+  (q/stroke 99)
+  (q/stroke-weight (* r 2))
+  (q/no-fill)
+  (q/begin-shape)
+  (doseq [[x y] points]
+    (q/vertex x y))
+  (q/end-shape)
+  (q/stroke 255)
+  (q/stroke-weight 1)
+  (q/no-fill)
+  (q/begin-shape)
+  (doseq [[x y] points]
+    (q/vertex x y))
+  (q/end-shape)
+  (q/pop-matrix))
 
 (defn draw-vehicle [{:keys [r velocity] [x y] :location}]
   (let [theta (+ (q/atan2 (second velocity) (first velocity)) q/HALF-PI)]
@@ -107,25 +118,27 @@
     (q/end-shape :close)
     (q/pop-matrix)))
 
-(defn draw-line [{[xl yl] :location} {[x y] :normal-point}]
-  (q/stroke-weight 1)
-  (q/line xl yl x y)
-  (q/ellipse x y 10 10))
+(defn draw-debug [{[x y] :location [px py] :prediction [nx ny] :normal-point
+                   [tx ty] :target :keys [on-track]}]
+  (q/stroke 255)
+  (q/fill 200)
+  (q/line x y px py)
+  (q/ellipse px py 4 4)
+  (q/ellipse nx ny 4 4)
+  (q/line px py nx ny)
+  (if on-track (q/fill 255 0 0) (q/fill 0 0 0))
+  (q/no-stroke)
+  (q/ellipse tx ty 8 8))
 
-(defn draw [{:keys [path vehicle prediction normal-point]}]
-  (q/background 255)
-  (q/begin-shape)
-  (doall (map (partial draw-path (:r path)) (:points path)))
-  (q/end-shape)
-  (doall (map (partial draw-line vehicle) (:lines path)))
-  (let [{:keys [location velocity]} vehicle
-        [x y] (v/add location (v/mult (v/normalize velocity) 25))]
-    (q/line (first location) (second location) x y)
-    (q/ellipse x y 5 5))
+(defn draw [{:keys [path vehicle]}]
+  (q/background 64)
+  (draw-path path)
+  (draw-debug vehicle)
   (draw-vehicle vehicle))
 
-(defn run []
+(defn start []
   (q/defsketch path-following
+    :display 1
     :title "path-following"
     :settings #(q/smooth 2)
     :middleware [md/pause-on-error md/fun-mode]

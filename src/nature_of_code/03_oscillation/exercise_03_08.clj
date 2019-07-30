@@ -57,7 +57,7 @@
       (update :angle v/add (v/add acceleration velocity))
       (assoc :acceleration [0 0])))
 
-l(defn update-state [state]
+(defn update-state [state]
   (map update-oscilliator state))
 
 
@@ -70,4 +70,5 @@ l(defn update-state [state]
     :update update-state
     :draw draw
     :features [:no-bind-output]
+    :display 1
     :size [700 500]))
