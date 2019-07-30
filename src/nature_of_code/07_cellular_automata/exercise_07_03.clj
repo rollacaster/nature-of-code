@@ -47,13 +47,14 @@
       (q/rect (* idx 5) 0 5 (q/height)))
     cells)))
 
-(q/defsketch ca-random
-  :title "ca-random"
-  :display 1
-  :settings #(q/smooth 2)
-  :middleware [md/pause-on-error md/fun-mode]
-  :setup setup
-  :draw draw
-  :update update-state
-  :features [:no-bind-output]
-  :size [700 500])
+(defn run []
+  (q/defsketch ca-random
+    :title "ca-random"
+    :display 1
+    :settings #(q/smooth 2)
+    :middleware [md/pause-on-error md/fun-mode]
+    :setup setup
+    :draw draw
+    :update update-state
+    :features [:no-bind-output]
+    :size [700 500]))
