@@ -27,7 +27,7 @@
   (let [{loc1 :location} attractor  
         {loc2 :location} mover
         vectorBetween (v/sub loc1 loc2)
-        distanceBetween (q/constrain-float (v/mag vectorBetween) 5.0 25.0)
+        distanceBetween (q/constrain (v/mag vectorBetween) 5.0 25.0)
         G 0.4
         strength (/ (* G (:mass attractor) (:mass mover)) (* distanceBetween distanceBetween))]
     (v/mult (v/normalize vectorBetween) strength)))
@@ -40,7 +40,7 @@
   (update state :movers (partial map (partial update-mover attractors))))
 
 (defn draw [{:keys [movers]}]
-  (q/clear) 
+  (q/clear)
   (q/background 255)
   (doseq [{:keys [mass] [x y] :location} movers]
     (q/ellipse x y mass mass)))
@@ -53,4 +53,5 @@
     :update update-state
     :draw draw
     :size [500 500]
+    :display 1
     :middleware [md/fun-mode]))

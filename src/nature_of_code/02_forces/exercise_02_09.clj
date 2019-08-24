@@ -26,7 +26,7 @@
   (let [{loc1 :location} attractor  
         {loc2 :location} mover
         vectorBetween (v/sub loc1 loc2)
-        distanceBetween (q/constrain-float (v/mag vectorBetween) 5.0 25.0)
+        distanceBetween (q/constrain (v/mag vectorBetween) 5.0 25.0)
         G 0.4
         strength (/ (* distanceBetween distanceBetween) (* G (:mass attractor) (:mass mover)))]
     (v/mult (v/normalize vectorBetween) strength)))
@@ -54,4 +54,5 @@
     :setup setup
     :update update-state
     :middleware [md/fun-mode]
+    :display 1
     :size [500 500]))

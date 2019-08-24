@@ -25,7 +25,7 @@
         pos (b/center b1)
         moverPos (b/center b2)
         force (v/sub pos moverPos)
-        distance (q/constrain-float (v/mag force) 1.0 5.0)
+        distance (q/constrain (v/mag force) 1.0 5.0)
         strength (/ (* G (b/mass b2)) (* distance distance))]
     (v/mult (v/normalize force) strength)))
 
