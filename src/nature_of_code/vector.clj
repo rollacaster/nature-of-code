@@ -37,3 +37,7 @@
 (defn round [[x1 x2]]
   [(Math/round x1) (Math/round x2)])
 
+(defn rotate [[x y] angle]
+  [(- (* (Math/cos angle) x) (* (Math/sin angle) y))
+   (+ (* (Math/sin angle) x) (* (Math/cos angle) y))])
+
