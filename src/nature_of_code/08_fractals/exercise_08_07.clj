@@ -31,12 +31,14 @@
   (let [theta (q/map-range (q/mouse-x) 0 (q/width) 0 q/HALF-PI)]
     (branch theta (/ (q/height) 3))))
 
-(q/defsketch tree
-  :title "tree"
-  :settings #(q/smooth 2)
-  :middleware [md/pause-on-error md/fun-mode]
-  :setup setup
-  :draw draw
-  :update update-state
-  :features [:no-bind-output]
-  :size [700 500])
+(defn run []
+  (q/defsketch tree
+    :title "tree"
+    :settings #(q/smooth 2)
+    :middleware [md/pause-on-error md/fun-mode]
+    :setup setup
+    :draw draw
+    :update update-state
+    :features [:no-bind-output]
+    :display 1
+    :size [700 500]))

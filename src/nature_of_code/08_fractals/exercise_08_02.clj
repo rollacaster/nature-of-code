@@ -21,9 +21,6 @@
           []
           lines))
 
-(->> [(setup-koch-line [0 200] [700 200])]
-     update-koch-line)
-
 (defn setup []
   {:lines
    (->> [(setup-koch-line [0 200] [700 200])])})
