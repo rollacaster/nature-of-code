@@ -40,13 +40,14 @@
       (update :sentence l-system rules)
       (update :length / 2)))
 
-(q/defsketch l-system-sketch
-  :title "l-system"
-  :settings #(q/smooth 2)
-  :middleware [md/pause-on-error md/fun-mode]
-  :setup setup
-  :draw draw
-  :mouse-pressed mouse-pressed
-  :display 1
-  :features [:no-bind-output]
-  :size [700 500])
+(defn run []
+  (q/defsketch l-system-sketch
+    :title "l-system"
+    :settings #(q/smooth 2)
+    :middleware [md/pause-on-error md/fun-mode]
+    :setup setup
+    :draw draw
+    :mouse-pressed mouse-pressed
+    :display 1
+    :features [:no-bind-output]
+    :size [700 500]))
