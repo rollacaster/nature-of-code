@@ -1,6 +1,4 @@
-(ns nature-of-code.09-the-evolution-of-code.exercise-09-03
-  (:require [quil.core :as q]
-            [quil.middleware :as md]))
+(ns nature-of-code.09-the-evolution-of-code.exercise-09-03)
 
 (defn setup-dna []
   {:phrase (map (fn [i] (char (+ (rand-int 26) 97))) (range 18))})
@@ -30,7 +28,23 @@
       [(nth mating-pool i1)
        (nth mating-pool i2)])))
 
-(defn setup []
+(defn cross-over [dna partner]
+  (let [midpoint (rand-int (count (:phrase dna)))]
+    {:phrase
+     (concat
+      (take midpoint (:phrase dna))
+      (drop midpoint (:phrase partner)))}))
+
+(defn cross-over-coin-flip [dna partner]
+  {:phrase
+   (map-indexed
+    (fn [idx v]
+      (if (> (rand) 0.5)
+        v
+        (nth (:phrase partner) idx)))
+    (:phrase dna))})
+
+(defn run []
   (let [target '(\u \l \s \x \o \v \i \f \t \o \i \l \u \y \e \s \c \l)
         population (map
                     (fn [{:keys [phrase] :as dna}]
@@ -39,20 +53,8 @@
         mating-pool (mating population)]
     (reproduction mating-pool)))
 
-(defn update-state [state]
-  )
 
-(defn draw [state]
-  )
 
-(defn run [] 
-  (q/defsketch genetic-alg
-    :title "unique-parents"
-    :settings #(q/smooth 2)
-    :middleware [md/pause-on-error md/fun-mode]
-    :setup setup
-    :draw draw
-    :update update-state
-    :display 1
-    :features [:no-bind-output]
-    :size [700 500]))
+
+
+

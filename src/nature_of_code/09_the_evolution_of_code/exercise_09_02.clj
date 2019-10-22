@@ -30,7 +30,7 @@
        (when (> 0.5 r)
          dna)))))
 
-(defn setup []
+(defn run []
   (let [target '(\u \l \s \x \o \v \i \f \t \o \i \l \u \y \e \s \c \l)
         population (map
                     (fn [{:keys [phrase] :as dna}]
@@ -38,20 +38,6 @@
                     (for [_ (range 100)] (setup-dna)))]
     (mating-monte-carlo population)))
 
-(defn update-state [state]
-  )
 
-(defn draw [state]
-  )
 
-(defn run []
-  (q/defsketch genetic-alg
-    :title "genetic-alg"
-    :settings #(q/smooth 2)
-    :middleware [md/pause-on-error md/fun-mode]
-    :setup setup
-    :draw draw
-    :update update-state
-    :display 1
-    :features [:no-bind-output]
-    :size [700 500]))
+
