@@ -1,6 +1,4 @@
-(ns nature-of-code.09-the-evolution-of-code.exercise-09-02
-  (:require [quil.core :as q]
-            [quil.middleware :as md]))
+(ns nature-of-code.09-the-evolution-of-code.exercise-09-02)
 
 (defn setup-dna []
   {:phrase (map (fn [i] (char (+ (rand-int 26) 97))) (range 18))})

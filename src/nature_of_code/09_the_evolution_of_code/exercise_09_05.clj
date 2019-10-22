@@ -1,4 +1,4 @@
-(ns nature-of-code.09-the-evolution-of-code.exercise-09-04)
+(ns nature-of-code.09-the-evolution-of-code.exercise-09-05)
 
 (defn setup-dna []
   {:phrase (map (fn [i] (char (+ (rand-int 26) 97))) (range 18))})
@@ -27,6 +27,22 @@
       (reproduction mating-pool)
       [(nth mating-pool i1)
        (nth mating-pool i2)])))
+
+(defn cross-over [dna partner]
+  (let [midpoint (rand-int (count (:phrase dna)))]
+    {:phrase
+     (concat
+      (take midpoint (:phrase dna))
+      (drop midpoint (:phrase partner)))}))
+
+(defn cross-over-coin-flip [dna partner]
+  {:phrase
+   (map-indexed
+    (fn [idx v]
+      (if (> (rand) 0.5)
+        v
+        (nth (:phrase partner) idx)))
+    (:phrase dna))})
 
 (defn run []
   (let [target '(\u \l \s \x \o \v \i \f \t \o \i \l \u \y \e \s \c \l)
