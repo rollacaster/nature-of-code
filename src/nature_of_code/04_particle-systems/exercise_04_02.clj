@@ -32,7 +32,7 @@
 (defn apply-force [particle force]
   (update particle :acceleration #(v/add % force)))
 
-(defn display [{:keys [lifespan angle] [x y] :location :as particle}]
+(defn draw-particle [{:keys [lifespan angle] [x y] :location :as particle}]
   (q/push-matrix)
   (q/rect-mode :center)
   (q/translate x y)
@@ -46,28 +46,28 @@
 (defn is-dead [{:keys [lifespan]}]
   (< lifespan 0.0))
 
-(defn run [particle]
-  (-> particle
-      (apply-force [0.1 0])
-       update-particle
-      display))
-
 (defn setup []
-  )
+  (create-particle [(/ (q/width) 2) (/ (q/height) 2)]))
 
-(def particle (atom (create-particle [250 250])))
+(defn update-state [particle]
+  (if (is-dead particle)
+    (create-particle [(/ (q/width) 2) (/ (q/height) 2)])
+    (-> particle
+        (apply-force [0.1 0])
+        update-particle)))
 
-(defn draw []
+(defn draw [particle]
   (q/background 255)
-  (when (is-dead (swap! particle run))
-    (def particle (atom (create-particle [250 250])))))
+  (draw-particle particle))
 
 (defn run []
   (q/defsketch particle-rotate
     :title "particle-rotate"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
     :draw draw
+    :display 1
+    :update update-state
     :features [:no-bind-output]
     :size [700 500]))
