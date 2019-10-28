@@ -47,13 +47,14 @@
       (q/rect a1 a2 10 10)
       (q/ellipse x y mass mass))))
 
-(q/defsketch multiple-springs
-  :title "multiple-springs"
-  :settings #(q/smooth 2)
-  :middleware [md/pause-on-error md/fun-mode]
-  :setup setup
-  :draw draw
-  :display 1
-  :update update-state
-  :features [:no-bind-output]
-  :size [700 500])
+(defn run []
+  (q/defsketch multiple-springs
+    :title "multiple-springs"
+    :settings #(q/smooth 2)
+    :middleware [md/pause-on-error md/fun-mode]
+    :setup setup
+    :draw draw
+    :display 1
+    :update update-state
+    :features [:no-bind-output]
+    :size [700 500]))

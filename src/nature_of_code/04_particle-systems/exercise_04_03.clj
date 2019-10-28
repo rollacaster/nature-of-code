@@ -3,8 +3,6 @@
             [quil.middleware :as md]
             [nature-of-code.vector :as v]))
 
-(def particles (atom ()))
-
 (defn create-particle [location]
   {:location location
    :velocity [(- (rand 2) 1) (- (rand 2) 1)]
@@ -31,7 +29,7 @@
         (assoc :angle (+ aVelocity angle))
         (assoc :aAcceleration 0))))
 
-(defn apply-force [force particle]
+(defn apply-force [particle force]
   (update particle :acceleration #(v/add % force)))
 
 (defn display [{:keys [lifespan angle] [x y] :location :as particle}]
@@ -48,33 +46,29 @@
 (defn is-dead [{:keys [lifespan]}]
   (< lifespan 0.0))
 
-(defn run [particle]
-  (-> particle
-      update-particle
-      display))
-
 (defn setup []
-  )
+  ())
 
-(defn add-origin [origin {:keys [location] :as particle}]
-  (assoc particle :location (v/add location origin)))
+(defn update-state [particles]
+  (->> (conj particles (create-particle [(q/mouse-x) (q/mouse-y)]))
+       (map (fn [particle]
+              (-> particle
+                  update-particle
+                  (apply-force [0 -0.1]))))
+       (remove is-dead)))
 
-(defn run-particle-system [particles x y direction]
-  (doseq [particle (swap! particles
-                          #(->> %
-                                (map (comp run (partial apply-force direction)))
-                                (remove is-dead)))]))
-
-(defn draw []
+(defn draw [particles]
   (q/background 255)
-  (run-particle-system particles (q/mouse-x) (q/mouse-y)))
+  (doseq [particle particles]
+    (display particle)))
 
-(defn run []
-  (q/defsketch particle-system-mouse
-    :title "particle-system-mouse"
-    :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
-    :setup setup
-    :draw draw
-    :features [:no-bind-output]
-    :size [700 500]))
+(q/defsketch particle-system-mouse
+  :title "particle-system-mouse"
+  :settings #(q/smooth 2)
+  :middleware [md/pause-on-error md/fun-mode]
+  :setup setup
+  :update update-state
+  :draw draw
+  :display 1
+  :features [:no-bind-output]
+  :size [700 500])
