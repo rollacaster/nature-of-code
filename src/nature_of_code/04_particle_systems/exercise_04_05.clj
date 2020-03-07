@@ -3,8 +3,6 @@
             [quil.core :as q]
             [quil.middleware :as md]))
 
-(def particle-systems (atom ()))
-
 (defn create-particle [location]
   {:location location
    :velocity [(- (rand 2) 1) (- (rand 2) 1)]
@@ -13,6 +11,9 @@
    :aAcceleration 0.0
    :aVelocity 0.1
    :angle 0.0})
+
+(defn setup []
+  ())
 
 (defn update-particle [{:keys [acceleration velocity location lifespan
                                aVelocity aAcceleration angle]
@@ -31,10 +32,29 @@
         (assoc :angle (+ aVelocity angle))
         (assoc :aAcceleration 0))))
 
-(defn apply-force [force particle]
-  (update particle :acceleration #(v/add % force)))
+(defn is-dead [{:keys [lifespan]}] (< lifespan 0.0))
 
-(defn display [{:keys [lifespan angle] [x y] :location :as particle}]
+(defn update-particle-system [{:keys [particles count]
+                               [x y] :location
+                               :as particle-system}]
+  (assoc particle-system
+         :count (dec count)
+         :particles (let [particles (if (> count 1)
+                                      (conj particles (create-particle [x y]))
+                                      particles)]
+                      (->> particles
+                           (map update-particle)
+                           (remove is-dead)))))
+
+(defn create-particle-system [x y count]
+  {:location [x y]
+   :count count
+   :particles []})
+
+(defn update-state [particle-systems]
+  (map update-particle-system particle-systems))
+
+(defn draw-particle [{:keys [lifespan angle] [x y] :location}]
   (q/push-matrix)
   (q/rect-mode :center)
   (q/translate x y)
@@ -42,59 +62,25 @@
   (q/stroke 0 lifespan)
   (q/fill 127 0 0 lifespan)
   (q/rect 0 0 8 8)
-  (q/pop-matrix)
-  particle)
+  (q/pop-matrix))
 
-(defn is-dead [{:keys [lifespan]}]
-  (< lifespan 0.0))
-
-(defn run [particle]
-  (-> particle
-      update-particle
-      display))
-
-(defn setup []
-  )
-
-(defn add-origin [origin {:keys [location] :as particle}]
-  (assoc particle :location (v/add location origin)))
-
-(defn run-particle-system [particles x y particle-count]
-  (doall
-   (->> (if (> particle-count 1)
-          (conj particles (add-origin [x y] (create-particle [0 0])))
-          particles)
-        (map run)
-        (remove is-dead))))
-
-(defn create-particle-system [x y particle-count]
-  {:location [x y]
-   :particle-count particle-count
-   :particles []})
-
-(defn run-particle-systems [{:keys [particles particle-count]
-                             [x y] :location :as particle-system}]
-  (-> particle-system
-      (update :particle-count dec)
-      (assoc :particles (run-particle-system particles x y (dec particle-count)))))
-
-(def particle-systems (atom ()))
-(defn draw []
+(defn draw [particle-systems]
   (q/background 255)
-  (doall (swap! particle-systems #(map run-particle-systems %))))
+  (doseq [particle-system particle-systems]
+    (doseq [particle (:particles particle-system)]
+      (draw-particle particle))))
 
-(defn on-mouse-pressed []
-  (swap! particle-systems #(conj % (create-particle-system (q/mouse-x)
-                                                           (q/mouse-y)
-                                                           127))))
+(defn mouse-pressed [state {:keys [x y]}]
+  (conj state (create-particle-system x y 50)))
 
 (defn run []
-  (q/defsketch particle-system-mouse
-    :title "particle-system-mouse"
+  (q/defsketch particles-on-click
+    :title "particles-on-click"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
     :draw draw
+    :update update-state
     :features [:no-bind-output]
-    :mouse-pressed on-mouse-pressed
+    :mouse-pressed mouse-pressed
     :size [700 500]))
