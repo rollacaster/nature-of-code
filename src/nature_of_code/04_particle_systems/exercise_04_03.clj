@@ -62,13 +62,14 @@
   (doseq [particle particles]
     (display particle)))
 
-(q/defsketch particle-system-mouse
-  :title "particle-system-mouse"
-  :settings #(q/smooth 2)
-  :middleware [md/pause-on-error md/fun-mode]
-  :setup setup
-  :update update-state
-  :draw draw
-  :display 1
-  :features [:no-bind-output]
-  :size [700 500])
+(defn run []
+  (q/defsketch particle-system-mouse
+    :title "particle-system-mouse"
+    :settings #(q/smooth 2)
+    :middleware [md/pause-on-error md/fun-mode]
+    :setup setup
+    :update update-state
+    :draw draw
+    :display 1
+    :features [:no-bind-output]
+    :size [700 500]))
