@@ -9,7 +9,7 @@
    :acceleration [0 0.05]
    :lifespan 255.0})
 
-(defn update [{:keys [acceleration velocity location lifespan] :as particle}]
+(defn update-particle [{:keys [acceleration velocity location lifespan] :as particle}]
   (let [velocity (v/add velocity acceleration)
         location (v/add velocity location)
         lifespan (- lifespan 2.0)]
@@ -29,7 +29,7 @@
 
 (defn run [particle]
   (-> particle
-      update
+      update-particle
       display))
 
 (defn setup []
