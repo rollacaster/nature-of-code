@@ -3,6 +3,13 @@
             [quil.core :as q]
             [quil.middleware :as md]))
 
+(defn create-boundary [world x y w h]
+  (let [body (b/body! world
+                      {:type :static :position [x y]}
+                      {:shape (b/box (/ w 2)
+                                     (/ h 2))})]
+    {:body body :x x :y y :w w :h h}))
+
 (defn init []
   (def world (b/new-world [0 100]))
   (def boundary (create-boundary world 350 250 350 10))
@@ -20,13 +27,6 @@
 (defn create-box [world x y]
   (let [body (b/body! world {:position [x y]} {:shape (b/box 8 8) :restitution 0.5})]
     {:body body :w 16 :h 16}))
-
-(defn create-boundary [world x y w h]
-  (let [body (b/body! world
-                      {:type :static :position [x y]}
-                      {:shape (b/box (/ w 2)
-                                     (/ h 2))})]
-    {:body body :x x :y y :w w :h h}))
 
 (defn display-box [{:keys [body w h]}]
   (let [[[x y]] (b/world-coords (b/fixture-of body))
