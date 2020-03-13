@@ -1,87 +1,29 @@
 (ns nature-of-code.04-particle-systems.exercise-04-09
   (:require [nature-of-code.vector :as v]
             [quil.core :as q]
+            [nature-of-code.mover :as m]
             [quil.middleware :as md]))
 
 (def gravity [0 0.3])
 
-(def particle-system (atom {:particles () :origin [200 200]}))
-
-(def repellers (atom '({:location [210 200]
-                        :r 10
-                        :strength 100}
-                      {:location [170 220]
-                        :r 10
-                        :strength 100}
-                       {:location [100 200]
-                        :r 10
-                        :strength 100})))
+(defn setup []
+  {:particle-system {:particles () :origin [(/ (q/width) 2) (/ (q/height) 2)]}
+   :repellers [{:location [(+ (/ (q/width) 2) 50) (- (/ (q/height) 2) 20)] :r 10 :strength 100}
+               {:location [(/ (q/width) 2) (+ (/ (q/height) 2) 100)] :r 10 :strength 100}
+               {:location [(- (/ (q/width) 2) 50) (+ (/ (q/height) 2) 80)] :r 10 :strength 100}]})
 
 (defn create-particle [location]
-  {:location location
+  (assoc
+   (m/create-mover 20 location)
    :velocity [(- (rand 2) 1) (- (rand 2) 2)]
-   :acceleration [0 0]
    :lifespan 255.0
-   :aAcceleration 0.1
-   :aVelocity 0.0
-   :angle 0.0
-   :mass 10})
+   :a-acceleration 0.1))
 
 (defn create-confetti [location]
   (-> (create-particle location)
       (assoc :type :confetti)))
 
-(defn add-particle [ps]
-  (update ps :particles #(conj % (apply (if (> (q/random 1) 0.5)
-                                          create-particle
-                                          create-confetti)
-                                        (list (:origin ps))))))
-
-(defmulti display-particle :type)
-(defmethod display-particle :confetti [{:keys [lifespan angle] [x y] :location :as particle}]
-  (q/rect-mode :center)
-  (q/fill 175 lifespan)
-  (q/stroke 0 lifespan)
-  (q/push-matrix)
-  (q/translate x y)
-  (q/rotate angle)
-  (q/rect 0 0 8 8)
-  (q/pop-matrix)
-  particle)
-(defmethod display-particle :default [{:keys [lifespan] [x y] :location :as particle}]
-  (q/stroke 0 lifespan)
-  (q/fill 0 lifespan)
-  (q/ellipse x y 8 8)
-  particle)
-
-(defn display-repeller [{[x y] :location :keys [r] :as repeller}]
-  (q/stroke 127)
-  (q/fill 127)
-  (q/ellipse x y (* r 2) (* r 2))
-  repeller)
-
-(defn is-dead [{:keys [lifespan]}]
-  (< lifespan 0.0))
-
-(defn apply-force [{:keys [mass acceleration] :as particle} force]
-  (assoc particle :acceleration
-         (a/add acceleration (a/div force mass))))
-
-(defn update-particle [{:keys [acceleration velocity location lifespan
-                               aVelocity aAcceleration angle] :as particle}]
-  (let [velocity (v/add velocity acceleration)
-        location (v/add velocity location)
-        lifespan (- lifespan 2.0)
-        aVelocity (+ aVelocity aAcceleration)
-        angle (+ aVelocity angle)]
-    (-> particle
-        (assoc :velocity velocity)
-        (assoc :location location)
-        (assoc :lifespan lifespan)
-        (assoc :aVelocity aVelocity)
-        (assoc :angle angle)
-        (assoc :aAcceleration 0.0)
-        (assoc :acceleration [0 0]))))
+(defn is-dead [{:keys [lifespan]}] (< lifespan 0.0))
 
 (defn repel [{:keys [location strength]} particle]
   (let [dir (v/sub location, (:location particle))
@@ -89,40 +31,62 @@
         force (/ (* -1 strength) (* d d))]
     (v/mult (v/normalize dir) force)))
 
-(defn run-particle-system [{:keys [particles confetti] :as ps}]
-  (doseq [particle particles]
-    (-> particle
-        display-particle))
-  (-> ps
-      (update :particles
-              #(map (fn [particle]
-                      (reduce
-                       (fn [particle repeller]
-                         (apply-force particle (repel repeller particle)))
-                       particle
-                       @repellers))
-                    %))
-      (update :particles #(map (fn [particle] (apply-force particle gravity)) %))
-      (update :particles #(map update-particle %))
-      (update :particles #(remove is-dead %))))
+(defn decrease-lifespan [particle] (update particle :lifespan (comp dec dec)))
 
-(defn setup []
-  )
+(defn update-state [{:keys [repellers] :as state}]
+  (-> state
+      (update :particle-system (fn [ps] (-> ps
+                                           (update :particles #(conj % (if (> (q/random 1) 0.5)
+                                                                         (create-particle (:origin ps))
+                                                                         (create-confetti(:origin ps)))))
+                                           (update :particles
+                                                   #(map (fn [particle]
+                                                           (reduce
+                                                            (fn [particle repeller]
+                                                              (m/apply-force particle (repel repeller particle)))
+                                                            particle
+                                                            repellers))
+                                                         %))
+                                           (update :particles #(map (fn [particle] (m/apply-force particle gravity)) %))
+                                           (update :particles #(map (comp decrease-lifespan m/compute-position) %))
+                                           (update :particles #(remove is-dead %)))))))
 
-(defn draw []
+(defmulti draw-particle :type)
+
+(defmethod draw-particle :confetti [{:keys [lifespan angle] [x y] :location}]
+  (q/rect-mode :center)
+  (q/fill 175 lifespan)
+  (q/stroke 0 lifespan)
+  (q/push-matrix)
+  (q/translate x y)
+  (q/rotate angle)
+  (q/rect 0 0 8 8)
+  (q/pop-matrix))
+
+(defmethod draw-particle :default [{:keys [lifespan] [x y] :location}]
+  (q/stroke 0 lifespan)
+  (q/fill 0 lifespan)
+  (q/ellipse x y 8 8))
+
+(defn draw-repeller [{[x y] :location :keys [r]}]
+  (q/stroke 127)
+  (q/fill 127)
+  (q/ellipse x y (* r 2) (* r 2)))
+
+(defn draw [{:keys [repellers particle-system]}]
   (q/background 255)
-  (doall (map display-repeller @repellers))
-  #_(display-repeller @repeller)
-  (swap! particle-system (comp
-                          add-particle
-                          run-particle-system)))
+  (doseq [repeller repellers]
+    (draw-repeller repeller))
+  (doseq [particle (:particles particle-system)]
+    (draw-particle particle)))
 
 (defn run []
   (q/defsketch particle
     :title "particle"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
     :draw draw
+    :update update-state
     :features [:no-bind-output]
     :size [700 500]))
