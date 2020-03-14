@@ -1,110 +1,48 @@
 (ns nature-of-code.04-particle-systems.exercise-04-12
-  (:require [nature-of-code.vector :as v]
+  (:require [nature-of-code.mover :as m]
             [quil.core :as q]
             [quil.middleware :as md]))
 
-(def gravity [0 0.3])
-(def image (atom nil))
-(def particle-system (atom {:particles () :origin [350 250]}))
-
-(defn create-particle [location]
-  {:location location
-   :velocity [(* (q/random-gaussian) 0.3) (- (* (q/random-gaussian) 0.3) 1.0)]
-   :acceleration [0 0]
-   :lifespan 255.0
-   :aAcceleration 0.1
-   :aVelocity 0.0
-   :angle 0.0
-   :mass 10
-   :strength 5})
-
-(defn create-confetti [location]
-  (-> (create-particle location)
-      (assoc :type :confetti)))
-
-(defn create-texture [location]
-  (-> (create-particle location)
-      (assoc :type :texture)))
-
-(defn add-particle [ps]
-  (update ps :particles #(conj % (create-texture (:origin ps)))))
-
-(defmulti display-particle :type)
-(defmethod display-particle :texture [{:keys [lifespan angle] [x y] :location :as particle}]
-  (q/image-mode :center)
-  (q/tint 255 lifespan)
-  (q/image (if (> (rand) 0.5 ) image image2) x y))
-(defmethod display-particle :confetti [{:keys [lifespan angle] [x y] :location :as particle}]
-  (q/rect-mode :center)
-  (q/fill 175 lifespan)
-  (q/stroke 0 lifespan)
-  (q/push-matrix)
-  (q/translate x y)
-  (q/rotate angle)
-  (q/rect 0 0 8 8)
-  (q/pop-matrix)
-  particle)
-(defmethod display-particle :default [{:keys [lifespan] [x y] :location :as particle}]
-  (q/stroke 0 lifespan)
-  (q/fill 0 lifespan)
-  (q/ellipse x y 8 8)
-  particle)
-
-(defn is-dead [{:keys [lifespan]}]
-  (< lifespan 0.0))
-
-(defn apply-force [{:keys [mass acceleration] :as particle} force]
-  (assoc particle :acceleration
-         (v/add acceleration (v/div force mass))))
-
-(defn update-particle [{:keys [acceleration velocity location lifespan
-                               aVelocity aAcceleration angle] :as particle}]
-  (let [velocity (v/add velocity acceleration)
-        location (v/add velocity location)
-        lifespan (- lifespan 2.0)
-        aVelocity (+ aVelocity aAcceleration)
-        angle (+ aVelocity angle)]
-    (-> particle
-        (assoc :velocity velocity)
-        (assoc :location location)
-        (assoc :lifespan lifespan)
-        (assoc :aVelocity aVelocity)
-        (assoc :angle angle)
-        (assoc :aAcceleration 0.0)
-        (assoc :acceleration [0 0]))))
-
-(defn repel [{:keys [location strength]} particle]
-  (let [dir (v/sub location, (:location particle))
-        d (q/constrain (v/mag dir) 5 100)
-        force (/ (* -1 strength) (* d d))]
-    (v/mult (v/normalize dir) force)))
-
-(defn run-particle-system [{:keys [particles confetti] :as ps}]
-  (doseq [particle particles]
-    (-> particle
-        display-particle))
-  (let [wind [(q/map-range (q/mouse-x) 0.0 (q/width) -0.2 0.2) 0]]
-    (-> ps
-        (update :particles #(map (fn [particle] (apply-force particle wind)) %))
-        (update :particles #(map update-particle %))
-        (update :particles #(remove is-dead %)))))
+(defn create-particle [location images]
+  (assoc (m/create-mover 10 location)
+         :velocity [(* (q/random-gaussian) 0.3) (- (* (q/random-gaussian) 0.3) 1.0)]
+         :lifespan 255.0
+         :mass 10
+         :image (rand-nth images)))
 
 (defn setup []
-  (def image (q/load-image "texture.png"))
-  (def image2 (q/load-image "texture2.png")))
+  {:images [(q/load-image "resources/images/sojka.jpg")
+            (q/load-image "resources/images/fcb.jpg")
+            (q/load-image "resources/images/emacs.png")]
+   :particles ()
+   :origin [350 250]})
 
-(defn draw []
+(defn draw-particle [{:keys [lifespan image] [x y] :location}]
+  (q/image-mode :center)
+  (q/tint 255 lifespan)
+  (q/image image x y 20 20))
+
+(defn is-dead [{:keys [lifespan]}] (< lifespan 0.0))
+(defn dec-lifespan [particle] (update particle :lifespan (comp dec dec)))
+
+(defn update-state [{:keys [images] :as ps}]
+  (-> ps
+      (update :particles #(conj % (create-particle (:origin ps) images)))
+      (update :particles #(map (comp m/compute-position dec-lifespan) %))
+      (update :particles #(remove is-dead %))))
+
+(defn draw [{:keys [particles]}]
   (q/background 255)
-  (swap! particle-system (comp
-                          add-particle
-                          run-particle-system)))
+  (doseq [particle particles]
+    (draw-particle particle)))
 
 (defn run []
-  (q/defsketch particle
+  (q/defsketch particle-images
     :title "particle"
     :settings #(q/smooth 2)
-    :middleware [md/pause-on-error]
+    :middleware [md/pause-on-error md/fun-mode]
     :setup setup
+    :update update-state
     :draw draw
     :features [:no-bind-output]
     :size [700 500]))
