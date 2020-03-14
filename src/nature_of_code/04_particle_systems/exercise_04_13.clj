@@ -1,23 +1,20 @@
 (ns nature-of-code.04-particle-systems.exercise-04-13
   (:require [nature-of-code.vector :as v]
+            [nature-of-code.mover :as m]
             [quil.core :as q]
             [quil.middleware :as md]))
+
 (defn setup []
   (q/image-mode :center)
+  (q/color-mode :hsb)
   (q/no-stroke)
   {:particles ()
-   :image (q/load-image "texture.png")})
+   :image (q/load-image "resources/images/texture-white.png")})
 
 (defn create-texture [location]
-  {:location location
-   :velocity [(* (q/random-gaussian) 0.3) (- (* (q/random-gaussian) 0.3) 1.0)]
-   :acceleration [0 0]
-   :lifespan 255.0
-   :aAcceleration 0.1
-   :aVelocity 0.0
-   :angle 0.0
-   :mass 10
-   :strength 5})
+  (assoc (m/create-mover 10 location)
+         :velocity [(* (q/random-gaussian) 0.8) (- (q/random-gaussian) 1.0)]
+         :lifespan 255.0))
 
 (defn is-dead [{:keys [lifespan]}]
   (< lifespan 0.0))
@@ -25,46 +22,30 @@
 (defn apply-force [force {:keys [mass acceleration] :as particle}]
   (assoc particle :acceleration (v/add acceleration (v/div force mass))))
 
-(defn update-particle [{:keys [acceleration velocity location lifespan
-                               aVelocity aAcceleration angle] :as particle}]
-  (let [velocity (v/add velocity acceleration)
-        location (v/add velocity location)
-        aVelocity (+ aVelocity aAcceleration)
-        angle (+ aVelocity angle)]
-    (-> particle
-        (assoc :velocity velocity)
-        (assoc :location location)
-        (update :lifespan dec)
-        (assoc :aVelocity aVelocity)
-        (assoc :angle angle)
-        (assoc :aAcceleration 0.0)
-        (assoc :acceleration [0 0]))))
+(defn dec-lifespan [particle] (update particle :lifespan (comp dec dec)))
 
 (defn update-state [state]
-  (let [wind [(q/map-range (q/mouse-x) 0.0 (q/width) -0.2 0.2)
-              (q/map-range (q/mouse-y) 0.0 (q/height) -0.2 0.2)]
-        origin [(/ (q/width) 2) (* 0.8 (q/height))]]
-    (update state :particles
-            #(->> (conj % (create-texture origin))
-                 (map (partial apply-force wind))
-                 (map update-particle)
-                 (remove is-dead)))))
+  (update state :particles
+          #(->> (conj % (create-texture [(/ (q/width) 2) (* 0.8 (q/height))]))
+                (map (comp m/compute-position dec-lifespan))
+                (remove is-dead))))
 
-(defn draw-particle [{:keys [lifespan angle] [x y] :location :as particle} image]
-  (q/fill 255 20 5 lifespan)
-  (q/ellipse x y
-             (q/map-range lifespan 255 0 100 0)
-             (q/map-range lifespan 255 0 100 0)))
+(defn draw-particle [{:keys [lifespan] [x y] :location} image]
+  (q/tint lifespan 255 255)
+  (q/image image x y
+           (q/map-range lifespan 255 0 100 0)
+           (q/map-range lifespan 255 0 100 0)))
 
 (defn draw [{:keys [particles image]}]
   (q/blend-mode :add)
   (q/background 0)
+  (q/color-mode :hsb)
   (doseq [particle particles]
     (draw-particle particle image)))
 
 (defn run []
-  (q/defsketch particle
-    :title "particle"
+  (q/defsketch particle-rainbow
+    :title "particle-rainbow"
     :settings #(q/smooth 2)
     :middleware [md/pause-on-error md/fun-mode]
     :setup setup
