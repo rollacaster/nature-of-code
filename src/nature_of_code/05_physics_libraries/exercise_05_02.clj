@@ -10,10 +10,9 @@
                                      (/ h 2))})]
     {:body body :x x :y y :w w :h h}))
 
-(defn init []
-  (def world (b/new-world [0 100]))
-  (def boundary (create-boundary world 350 250 350 10))
-  (def boxes (atom ())))
+(def world (b/new-world [0 100]))
+(def boundary (create-boundary world 350 250 350 10))
+(def boxes (atom ()))
 
 (defn coord-pixels-to-world [x y]
   (let [scale-factor 10.0
@@ -40,7 +39,7 @@
     (q/rect 0 0 w h)
     (q/pop-matrix)))
 
-(defn display-boundary [{:keys [body x y w h]}]
+(defn display-boundary [{:keys [body w h]}]
   (let [[[x y]] (b/world-coords (b/fixture-of body))]
     (q/fill 175)
     (q/stroke 0)
