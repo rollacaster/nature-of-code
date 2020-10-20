@@ -1,44 +1,53 @@
 (ns nature-of-code.08-fractals.exercise-08-12
-  (:require [quil.core :as q]
-            [quil.middleware :as md]
-            [clojure.string :as s]))
+  (:require [nature-of-code.vector :as v]
+            [quil.core :as q]
+            [quil.middleware :as md]))
 
-;; NOT FINISHED needs to converted according to Exercises8.12
-
-(def rules {"F" "FF+[+F-F-F]-[-F+F+F]"})
-
-(defn l-system [current-sentence rules]
-  (apply str
-         (reduce
-          (fn [next-sentence sentence]
-            (concat next-sentence (or (get rules (str sentence)) (str sentence))))
-          ""
-          current-sentence)))
-
-(defn turtle [sentence len angle]
-  (doseq [letter sentence]
-    (case letter
-      \F (do (q/line 0 0 len 0)
-             (q/translate len 0))
-      \G (q/translate len 0)
-      \+ (q/rotate angle)
-      \- (q/rotate (- angle))
-      \[ (q/push-matrix)
-      \] (q/pop-matrix))))
+(defn compute-turtle [[start end] len angle]
+  (let [a start
+        b (v/add start (v/mult (v/normalize end) len))
+        c end
+        d (v/add c (v/rotate (v/mult (v/normalize c) len) (* 2 angle)))
+        e (v/add d (v/rotate (v/mult (v/normalize d) len) (/ angle 2)))
+        f (v/add e (v/rotate (v/mult (v/normalize e) len) (- angle)))
+        g (v/add c (v/rotate (v/mult (v/normalize c) len) (- angle)))
+        h (v/add g (v/rotate (v/mult (v/normalize g) len) (/ angle 2)))
+        i (v/add h (v/rotate (v/mult (v/normalize h) len) angle))]
+    [[a b]
+     [b c]
+     [c d]
+     [d e]
+     [e f]
+     [c g]
+     [g h]
+     [h i]]))
 
 (defn setup []
-  {:sentence "F" :length (/ (q/width) 4)})
+  (let [len (/ 700 4)
+        angle (q/radians 25)]
+    {:length len
+     :angle angle
+     :lines [[[0 0] [0 (+ (- len) 0)]]]}))
 
-(defn draw [{:keys [sentence length]}]
+(defn draw [{:keys [lines]}]
+  (q/clear)
+  (q/color-mode :hsb)
   (q/background 255)
   (q/translate (/ (q/width) 2) (q/height))
-  (q/rotate (- q/HALF-PI))
-  (turtle sentence length (q/radians 25)))
+  (q/fill 0)
+  (let [line-groups (partition-all 8 lines)]
+    (doseq [[idx lines-seq] (map-indexed #(vector %1 %2) line-groups)]
+      (q/stroke (* idx (/ 255 (count line-groups))) 255 255)
+      (doseq [[[x1 y1] [x2 y2]] lines-seq]
+        (q/stroke-weight 10)
+        (q/stroke-weight 1)
+        (q/line x1 y1 x2 y2)))))
 
 (defn mouse-pressed [state ev]
-  (-> state
-      (update :sentence l-system rules)
-      (update :length / 2)))
+  (let [len (/ (:length state) 2)]
+    (-> state
+        (update :lines (fn [lines] (mapcat #(compute-turtle % len (:angle state)) lines)))
+        (assoc :length len))))
 
 (defn run []
   (q/defsketch l-system-sketch
